@@ -4,75 +4,76 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated color tokens to match purple-themed wallpaper app design */
-  --background: #1c1c1e;
-  --foreground: #f0f0f5;
-  --card: #2c2c2e;
-  --card-foreground: #f0f0f5;
-  --popover: rgba(108, 92, 231, 0.9);
-  --popover-foreground: #f0f0f5;
-  --primary: #6b5eae;
-  --primary-foreground: #f0f0f5;
-  --secondary: #a45db3;
-  --secondary-foreground: #ffffff;
-  --muted: rgba(255, 255, 255, 0.5);
-  --muted-foreground: #1c1c1e;
-  --accent: #a45db3;
+  /* Updated to anime neon color scheme with galaxy theme */
+  --background: #0a0015;
+  --foreground: #ffffff;
+  --card: #1a0d2e;
+  --card-foreground: #ffffff;
+  --popover: #2d1b3d;
+  --popover-foreground: #ffffff;
+  --primary: #ff00ff;
+  --primary-foreground: #ffffff;
+  --secondary: #00ffff;
+  --secondary-foreground: #0a0015;
+  --muted: #1a0d2e;
+  --muted-foreground: #a855f7;
+  --accent: #ff6b35;
   --accent-foreground: #ffffff;
   --destructive: #ff4d4d;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: #2c2c2e;
-  --ring: rgba(108, 92, 231, 0.5);
-  --chart-1: #6b5eae;
-  --chart-2: #a45db3;
-  --chart-3: #f0f0f5;
-  --chart-4: #ff4d4d;
+  --border: rgba(168, 85, 247, 0.3);
+  --input: #1a0d2e;
+  --ring: #ff00ff;
+  --chart-1: #ff00ff;
+  --chart-2: #00ffff;
+  --chart-3: #ff6b35;
+  --chart-4: #a855f7;
   --chart-5: #ffffff;
-  --radius: 0.5rem;
-  --sidebar: #2c2c2e;
-  --sidebar-foreground: #f0f0f5;
-  --sidebar-primary: #6b5eae;
+  --radius: 1rem;
+  --sidebar: #1a0d2e;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ff00ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #a45db3;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: rgba(108, 92, 231, 0.5);
+  --sidebar-accent: #00ffff;
+  --sidebar-accent-foreground: #0a0015;
+  --sidebar-border: rgba(168, 85, 247, 0.3);
+  --sidebar-ring: #ff00ff;
 }
 
 .dark {
-  --background: #1c1c1e;
-  --foreground: #f0f0f5;
-  --card: #2c2c2e;
-  --card-foreground: #f0f0f5;
-  --popover: rgba(108, 92, 231, 0.9);
-  --popover-foreground: #f0f0f5;
-  --primary: #6b5eae;
-  --primary-foreground: #f0f0f5;
-  --secondary: #a45db3;
-  --secondary-foreground: #ffffff;
-  --muted: rgba(255, 255, 255, 0.5);
-  --muted-foreground: #1c1c1e;
-  --accent: #a45db3;
+  /* Same colors for dark mode consistency */
+  --background: #0a0015;
+  --foreground: #ffffff;
+  --card: #1a0d2e;
+  --card-foreground: #ffffff;
+  --popover: #2d1b3d;
+  --popover-foreground: #ffffff;
+  --primary: #ff00ff;
+  --primary-foreground: #ffffff;
+  --secondary: #00ffff;
+  --secondary-foreground: #0a0015;
+  --muted: #1a0d2e;
+  --muted-foreground: #a855f7;
+  --accent: #ff6b35;
   --accent-foreground: #ffffff;
   --destructive: #ff4d4d;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: #2c2c2e;
-  --ring: rgba(108, 92, 231, 0.5);
-  --chart-1: #6b5eae;
-  --chart-2: #a45db3;
-  --chart-3: #f0f0f5;
-  --chart-4: #ff4d4d;
+  --border: rgba(168, 85, 247, 0.3);
+  --input: #1a0d2e;
+  --ring: #ff00ff;
+  --chart-1: #ff00ff;
+  --chart-2: #00ffff;
+  --chart-3: #ff6b35;
+  --chart-4: #a855f7;
   --chart-5: #ffffff;
-  --sidebar: #2c2c2e;
-  --sidebar-foreground: #f0f0f5;
-  --sidebar-primary: #6b5eae;
+  --sidebar: #1a0d2e;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ff00ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #a45db3;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: rgba(108, 92, 231, 0.5);
+  --sidebar-accent: #00ffff;
+  --sidebar-accent-foreground: #0a0015;
+  --sidebar-border: rgba(168, 85, 247, 0.3);
+  --sidebar-ring: #ff00ff;
 }
 
 @theme inline {
@@ -121,23 +122,316 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
+    /* Added animated galaxy background */
+    background: linear-gradient(45deg, #0a0015 0%, #1a0d2e 25%, #2d1b3d 50%, #1a0d2e 75%, #0a0015 100%);
+    background-size: 400% 400%;
+    animation: galaxyShift 20s ease infinite;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 20% 80%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(255, 107, 53, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
   }
 }
 
-/* Added custom gradient backgrounds for the wallpaper app */
-.gradient-bg {
-  background: linear-gradient(135deg, #6b5eae 0%, #a45db3 100%);
+/* Anime-inspired neon UI animations and effects */
+@keyframes galaxyShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-.gradient-card {
-  background: linear-gradient(145deg, rgba(108, 92, 174, 0.1) 0%, rgba(164, 93, 179, 0.1) 100%);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+  66% {
+    transform: translateY(-5px) rotate(-1deg);
+  }
 }
 
-.glass-effect {
-  background: rgba(44, 44, 46, 0.8);
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
+  }
+}
+
+@keyframes neonPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4), 0 0 40px rgba(255, 0, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.6), 0 0 60px rgba(255, 0, 255, 0.3);
+  }
+}
+
+@keyframes hologramShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(100vh) translateX(0px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) translateX(100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 3D glassmorphism effects */
+.glass-card {
+  background: rgba(26, 13, 46, 0.3);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 0, 255, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(255, 0, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 0, 255, 0.1), transparent);
+  animation: hologramShimmer 3s infinite;
+}
+
+.glass-card:hover {
+  transform: translateY(-5px) rotateX(5deg);
+  box-shadow: 0 20px 40px rgba(255, 0, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 0, 255, 0.4);
+}
+
+/* 3D floating wallpaper cards */
+.wallpaper-card {
+  background: rgba(26, 13, 46, 0.4);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 16px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+}
+
+.wallpaper-card:hover {
+  transform: translateY(-10px) rotateY(5deg) rotateX(5deg);
+  box-shadow: 0 25px 50px rgba(0, 255, 255, 0.2), 0 0 30px rgba(255, 0, 255, 0.1);
+  border-color: rgba(0, 255, 255, 0.6);
+}
+
+.wallpaper-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(0, 255, 255, 0.1) 50%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.wallpaper-card:hover::after {
+  opacity: 1;
+}
+
+/* Holographic controls */
+.holo-slider {
+  background: rgba(26, 13, 46, 0.6);
+  border: 1px solid rgba(255, 0, 255, 0.3);
+  border-radius: 50px;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.holo-slider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+  animation: hologramShimmer 2s infinite;
+}
+
+/* Power-up crystal generate button */
+.crystal-button {
+  background: linear-gradient(45deg, #ff00ff, #ff6b35, #00ffff);
+  background-size: 300% 300%;
+  animation: galaxyShift 3s ease infinite;
+  border: none;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(255, 0, 255, 0.5), 0 0 60px rgba(255, 107, 53, 0.3);
+  transition: all 0.3s ease;
+}
+
+.crystal-button:hover {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 0 40px rgba(255, 0, 255, 0.7), 0 0 80px rgba(255, 107, 53, 0.4);
+}
+
+.crystal-button::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: spin 2s linear infinite;
+}
+
+/* Floating particles */
+.particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sakura-petal {
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, #ff6b35, #ff00ff);
+  border-radius: 50% 0 50% 0;
+  animation: particleFloat 15s linear infinite;
+}
+
+.glow-shard {
+  width: 4px;
+  height: 12px;
+  background: linear-gradient(45deg, #00ffff, #ff00ff);
+  border-radius: 2px;
+  animation: particleFloat 20s linear infinite;
+}
+
+/* Cursor spotlight effect */
+.cursor-spotlight {
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255, 0, 255, 0.1) 0%, rgba(0, 255, 255, 0.05) 30%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: screen;
+  transition: all 0.1s ease;
+}
+
+/* Neon navigation */
+.neon-nav {
+  background: rgba(26, 13, 46, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 0, 255, 0.3);
+  position: relative;
+}
+
+.neon-nav::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #ff00ff, #00ffff, #ff6b35, transparent);
+  animation: neonPulse 3s ease infinite;
+}
+
+/* Auto-rotate orb */
+.auto-rotate-orb {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #ff00ff, #00ffff, #ff6b35, #ff00ff);
+  position: relative;
+  animation: spin 3s linear infinite;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+}
+
+.auto-rotate-orb::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  background: #0a0015;
+  border-radius: 50%;
+}
+
+/* Utility classes */
+.anime-float {
+  animation: float 4s ease-in-out infinite;
+}
+.neon-glow {
+  animation: neonPulse 2s ease-in-out infinite;
+}
+.text-neon {
+  color: #ff00ff;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+}
+.text-cyan {
+  color: #00ffff;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+.text-orange {
+  color: #ff6b35;
+  text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
 }
