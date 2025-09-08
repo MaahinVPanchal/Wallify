@@ -147,138 +147,91 @@ export default function WallpaperApp() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="p-3 rounded-full glass-effect">
-              <Palette className="h-8 w-8 text-primary" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-2">WallCraft</h1>
-          <p className="text-white/80">Your Personal Wallpaper Manager</p>
+    <div className="min-h-screen gradient-bg flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-20 left-20 text-4xl anime-float" style={{ animationDelay: "0s" }}>
+          🌟
         </div>
-
-        {currentStep === "signup" && (
-          <Card className="glass-effect border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white">Create Account</CardTitle>
-              <CardDescription className="text-white/70">Sign up to start managing your wallpapers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    required
-                    className="bg-input border-white/20 text-white placeholder:text-white/50"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-white">
-                    Password
-                  </Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Create a password"
-                    required
-                    className="bg-input border-white/20 text-white placeholder:text-white/50"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="screen-size" className="text-white">
-                    Screen Resolution
-                  </Label>
-                  <Select name="screen-size" required>
-                    <SelectTrigger className="bg-input border-white/20 text-white">
-                      <SelectValue placeholder="Select your screen size" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-white/20">
-                      <SelectItem value="1920x1080">1920 x 1080 (Full HD)</SelectItem>
-                      <SelectItem value="2560x1440">2560 x 1440 (2K)</SelectItem>
-                      <SelectItem value="3840x2160">3840 x 2160 (4K)</SelectItem>
-                      <SelectItem value="1366x768">1366 x 768 (HD)</SelectItem>
-                      <SelectItem value="1440x900">1440 x 900 (WXGA+)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" className="w-full gradient-bg border-0 hover:opacity-90">
-                  Create Account
-                </Button>
-                <p className="text-center text-white/70 text-sm">
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep("signin")}
-                    className="text-accent hover:underline"
-                  >
-                    Sign in
-                  </button>
-                </p>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {currentStep === "signin" && (
-          <Card className="glass-effect border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white">Welcome Back</CardTitle>
-              <CardDescription className="text-white/70">Sign in to access your wallpapers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email" className="text-white">
-                    Email
-                  </Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    required
-                    className="bg-input border-white/20 text-white placeholder:text-white/50"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password" className="text-white">
-                    Password
-                  </Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    placeholder="Enter your password"
-                    required
-                    className="bg-input border-white/20 text-white placeholder:text-white/50"
-                  />
-                </div>
-                <Button type="submit" className="w-full gradient-bg border-0 hover:opacity-90">
-                  Sign In
-                </Button>
-                <p className="text-center text-white/70 text-sm">
-                  Don't have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep("signup")}
-                    className="text-accent hover:underline"
-                  >
-                    Sign up
-                  </button>
-                </p>
-              </form>
-            </CardContent>
-          </Card>
-        )}
+        <div className="absolute top-40 right-32 text-3xl anime-float" style={{ animationDelay: "1s" }}>
+          ✨
+        </div>
+        <div className="absolute bottom-32 left-16 text-2xl anime-float" style={{ animationDelay: "2s" }}>
+          🌙
+        </div>
+        <div className="absolute bottom-20 right-20 text-3xl anime-float" style={{ animationDelay: "0.5s" }}>
+          ⭐
+        </div>
       </div>
+
+      <Card className="w-full max-w-md anime-card magical-glow">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center sparkle-effect">
+            <Palette className="h-10 w-10 text-white" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-neon">
+            {currentStep === "signup" ? "Join WallCraft ✨" : "Welcome Back! 🌟"}
+          </CardTitle>
+          <CardDescription className="text-white/80">
+            {currentStep === "signup"
+              ? "Create magical wallpapers for your desktop"
+              : "Sign in to access your wallpaper collection"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={currentStep === "signup" ? handleSignUp : handleSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label
+                htmlFor="email"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed text-white"
+              >
+                Email
+              </Label>
+              <Input id="email" placeholder="Enter your email" type="email" required className="h-10" />
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed text-white"
+              >
+                Password
+              </Label>
+              <Input id="password" placeholder="Enter your password" type="password" required className="h-10" />
+            </div>
+            {currentStep === "signup" && (
+              <div className="space-y-2">
+                <Label
+                  htmlFor="screen-size"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed text-white"
+                >
+                  Screen Resolution
+                </Label>
+                <Select>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1920x1080">1920 x 1080 (Full HD)</SelectItem>
+                    <SelectItem value="2560x1440">2560 x 1440 (2K)</SelectItem>
+                    <SelectItem value="3840x2160">3840 x 2160 (4K)</SelectItem>
+                    <SelectItem value="1366x768">1366 x 768 (HD)</SelectItem>
+                    <SelectItem value="1440x900">1440 x 900 (WXGA+)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Button className="w-full h-11">{currentStep === "signup" ? "Create Account" : "Sign In"}</Button>
+            <p className="text-center text-sm text-muted-foreground">
+              {currentStep === "signup" ? "Already have an account?" : "Don't have an account?"}{" "}
+              <button
+                className="underline underline-offset-2 text-primary"
+                onClick={() => setCurrentStep(currentStep === "signup" ? "signin" : "signup")}
+              >
+                {currentStep === "signup" ? "Sign in" : "Sign up"}
+              </button>
+            </p>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }
