@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -28,7 +27,6 @@ import {
   Settings,
   CheckCircle,
   Wand2,
-  Loader2,
   Contrast,
   Droplets,
   Focus,
@@ -40,6 +38,7 @@ import {
   Crop,
   Filter,
   Clock,
+  Gift,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -253,6 +252,11 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
+  const [isGiftModalOpen, setIsGiftModalOpen] = useState(false)
+  const [favoriteNumber, setFavoriteNumber] = useState("")
+  const [isGiftHovered, setIsGiftHovered] = useState(false)
+  const [isGrayscale, setIsGrayscale] = useState(false)
+
   useEffect(() => {
     if (!isSchedulerActive || uploadedImages.length === 0) return
 
@@ -286,9 +290,9 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
 
   const handleFileSelect = useCallback(
     (files: FileList | null) => {
-      if (!files || uploadedImages.length >= 10) return
+      if (!files || uploadedImages.length >= 20) return
 
-      const remainingSlots = 10 - uploadedImages.length
+      const remainingSlots = 20 - uploadedImages.length
       const filesToProcess = Array.from(files).slice(0, remainingSlots)
 
       setIsUploading(true)
@@ -732,6 +736,62 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
     [processImageForWallpaper],
   )
 
+  const handleGiftClick = async () => {
+    if (!favoriteNumber || Number.parseInt(favoriteNumber) < 1 || Number.parseInt(favoriteNumber) > 1084) {
+      toast({
+        title: "Invalid Number",
+        description: "Please enter a number between 1 and 1084",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (uploadedImages.length >= 20) {
+      toast({
+        title: "Gallery Full",
+        description: "Remove some images to add new ones (max 20)",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const [width, height] = userScreenSize.split("x").map(Number)
+      const grayscaleParam = isGrayscale ? "?grayscale" : ""
+      const imageUrl = `https://picsum.photos/id/${favoriteNumber}/${width}/${height}${grayscaleParam}`
+
+      // Create a new image entry
+      const imageId = Math.random().toString(36).substr(2, 9)
+      const newImage: UploadedImage = {
+        id: imageId,
+        file: null as any, // Will be handled differently for external images
+        url: imageUrl,
+        name: `Random-${favoriteNumber}${isGrayscale ? "-grayscale" : ""}.jpg`,
+        size: 0,
+        uploadProgress: 100,
+        isUploaded: true,
+        adjustments: createDefaultAdjustments(),
+        cropMode: "fill",
+        filter: "none",
+      }
+
+      setUploadedImages((prev) => [...prev, newImage])
+      setIsGiftModalOpen(false)
+      setFavoriteNumber("")
+
+      toast({
+        title: "Random Image Added!",
+        description: `Added image #${favoriteNumber} to your gallery`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch random image",
+        variant: "destructive",
+      })
+    }
+  }
+
   const uploadedImagesList = uploadedImages.filter((img) => img.isUploaded)
 
   return (
@@ -830,7 +890,7 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-foreground mb-2">Your Wallpapers</h2>
           <p className="text-muted-foreground">
-            Upload and manage your desktop wallpapers ({uploadedImages.length}/10) • Target: {userScreenSize}
+            Upload and manage your desktop wallpapers ({uploadedImages.length}/20) • Target: {userScreenSize}
           </p>
         </div>
 
@@ -856,19 +916,19 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
                 onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
                 id="file-upload"
-                disabled={uploadedImages.length >= 10 || isUploading}
+                disabled={uploadedImages.length >= 20 || isUploading}
               />
               <label htmlFor="file-upload">
                 <Button
                   className="gradient-bg border-0 hover:opacity-90 disabled:opacity-50"
-                  disabled={uploadedImages.length >= 10 || isUploading}
+                  disabled={uploadedImages.length >= 20 || isUploading}
                   asChild
                 >
                   <span>{isUploading ? "Uploading..." : "Choose Files"}</span>
                 </Button>
               </label>
               <p className="text-sm text-muted-foreground mt-2">
-                Upload up to 10 images (JPG, PNG, WebP) • Max 10MB per file • Auto-resize to {userScreenSize}
+                Upload up to 20 images (JPG, PNG, WebP) • Max 10MB per file • Auto-resize to {userScreenSize}
               </p>
             </div>
           </CardContent>
@@ -1300,14 +1360,14 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
                 <Button variant="outline" className="border-white/20 hover:bg-white/10 bg-transparent" disabled>
                   Upload Images Above
                 </Button>
-                <Button
+{/*                 <Button
                   variant="outline"
                   className="border-white/20 hover:bg-white/10 bg-transparent"
                   onClick={() => setIsGenerateOpen(true)}
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Generate AI Wallpaper
-                </Button>
+                </Button> */}
               </div>
             </CardContent>
           </Card>
@@ -1316,108 +1376,87 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
         {/* Generate Button */}
         <div className="fixed bottom-6 right-6">
           <Button
-            className="gradient-bg border-0 hover:opacity-90 shadow-lg h-14 px-6"
-            onClick={() => setIsGenerateOpen(true)}
-            disabled={uploadedImages.length >= 10}
+            className={`gradient-bg border-0 hover:opacity-90 shadow-lg h-14 px-6 transition-transform duration-300 ${
+              isGiftHovered ? "scale-110" : "scale-100"
+            }`}
+            onClick={() => setIsGiftModalOpen(true)}
+            onMouseEnter={() => setIsGiftHovered(true)}
+            onMouseLeave={() => setIsGiftHovered(false)}
+            disabled={uploadedImages.length >= 20}
           >
-            <Sparkles className="h-5 w-5 mr-2" />
-            Generate Wallpaper
+            <Gift className="h-5 w-5 mr-2" />
+            Random Image
           </Button>
         </div>
       </main>
 
-      <Dialog open={isGenerateOpen} onOpenChange={setIsGenerateOpen}>
-        <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-lg border-white/20">
+      <Dialog open={isGiftModalOpen} onOpenChange={setIsGiftModalOpen}>
+        <DialogContent className="max-w-md bg-background/95 backdrop-blur-lg border-white/20">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center">
-              <Sparkles className="h-5 w-5 mr-2" />
-              Generate AI Wallpaper
+              <Gift className="h-5 w-5 mr-2" />
+              Get Random Image
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6 p-4">
             <div className="space-y-2">
-              <Label htmlFor="prompt" className="text-foreground">
-                Describe your wallpaper
+              <Label htmlFor="favorite-number" className="text-foreground">
+                What's your favorite number? (1-1084)
               </Label>
-              <Textarea
-                id="prompt"
-                placeholder="e.g., A serene mountain landscape at sunset with purple and orange clouds..."
-                value={generationPrompt}
-                onChange={(e) => setGenerationPrompt(e.target.value)}
-                className="bg-input border-white/20 text-foreground placeholder:text-muted-foreground min-h-[100px]"
-                disabled={isGenerating}
+              <Input
+                id="favorite-number"
+                type="number"
+                min="1"
+                max="1084"
+                placeholder="Enter a number between 1 and 1084"
+                value={favoriteNumber}
+                onChange={(e) => setFavoriteNumber(e.target.value)}
+                className="bg-input border-white/20 text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="style" className="text-foreground">
-                Art Style
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="grayscale"
+                checked={isGrayscale}
+                onChange={(e) => setIsGrayscale(e.target.checked)}
+                className="rounded border-white/20"
+              />
+              <Label htmlFor="grayscale" className="text-foreground text-sm">
+                Grayscale image
               </Label>
-              <Select value={generationStyle} onValueChange={setGenerationStyle} disabled={isGenerating}>
-                <SelectTrigger className="bg-input border-white/20 text-foreground">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-white/20">
-                  {GENERATION_STYLES.map((style) => (
-                    <SelectItem key={style} value={style}>
-                      {style}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="flex items-center justify-between p-4 bg-muted/20 rounded-lg">
               <div className="flex items-center space-x-2">
                 <Monitor className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Target Resolution: {userScreenSize}</span>
+                <span className="text-sm text-muted-foreground">Resolution: {userScreenSize}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Gallery: {uploadedImages.length}/10</span>
+                <span className="text-sm text-muted-foreground">Gallery: {uploadedImages.length}/20</span>
               </div>
             </div>
-
-            {isGenerating && (
-              <Card className="gradient-card">
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-3">
-                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground mb-1">Generating your wallpaper...</p>
-                      <p className="text-xs text-muted-foreground">This may take a few moments</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             <div className="flex justify-end space-x-3">
               <Button
                 variant="outline"
-                onClick={() => setIsGenerateOpen(false)}
-                disabled={isGenerating}
+                onClick={() => setIsGiftModalOpen(false)}
                 className="border-white/20 hover:bg-white/10"
               >
                 Cancel
               </Button>
               <Button
-                onClick={generateWallpaper}
-                disabled={isGenerating || !generationPrompt.trim()}
+                onClick={handleGiftClick}
+                disabled={
+                  !favoriteNumber || Number.parseInt(favoriteNumber) < 1 || Number.parseInt(favoriteNumber) > 1084
+                }
                 className="gradient-bg border-0 hover:opacity-90"
               >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="h-4 w-4 mr-2" />
-                    Generate Wallpaper
-                  </>
-                )}
+                <Gift className="h-4 w-4 mr-2" />
+                Get Image
               </Button>
             </div>
           </div>
