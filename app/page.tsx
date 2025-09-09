@@ -22,7 +22,6 @@ import {
   ChevronRight,
   Sun,
   Eye,
-  Sparkles,
   Download,
   Settings,
   CheckCircle,
@@ -53,9 +52,21 @@ interface ImageAdjustments {
   opacity: number
 }
 
+interface TextOverlaySettings {
+  text: string
+  fontSize: number
+  fontFamily: string
+  color: string
+  strokeColor: string
+  strokeWidth: number
+  x: number
+  y: number
+  rotation: number
+  opacity: number
+}
+
 interface UploadedImage {
   id: string
-  file: File
   url: string
   name: string
   size: number
@@ -67,7 +78,7 @@ interface UploadedImage {
   processedUrl?: string
   isProcessing?: boolean
   isGenerated?: boolean
-  textOverlay?: string
+  textOverlay?: TextOverlaySettings
   gradientOverlay?: string
 }
 
@@ -118,6 +129,17 @@ const GRADIENT_OVERLAYS = [
   { value: "forest", label: "Forest" },
   { value: "purple", label: "Purple Dream" },
   { value: "fire", label: "Fire" },
+]
+
+const FONT_FAMILIES = [
+  { value: "Arial", label: "Arial" },
+  { value: "Helvetica", label: "Helvetica" },
+  { value: "Times New Roman", label: "Times New Roman" },
+  { value: "Georgia", label: "Georgia" },
+  { value: "Verdana", label: "Verdana" },
+  { value: "Impact", label: "Impact" },
+  { value: "Comic Sans MS", label: "Comic Sans MS" },
+  { value: "Trebuchet MS", label: "Trebuchet MS" },
 ]
 
 export default function WallpaperApp() {
@@ -304,7 +326,6 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
 
           const newImage: UploadedImage = {
             id: imageId,
-            file,
             url: imageUrl,
             name: file.name,
             size: file.size,
@@ -383,8 +404,27 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
     setUploadedImages((prev) => prev.map((img) => (img.id === imageId ? { ...img, filter } : img)))
   }, [])
 
-  const updateImageTextOverlay = useCallback((imageId: string, textOverlay: string) => {
-    setUploadedImages((prev) => prev.map((img) => (img.id === imageId ? { ...img, textOverlay } : img)))
+  const updateImageTextOverlay = useCallback((imageId: string, textSettings: Partial<TextOverlaySettings>) => {
+    setUploadedImages((prev) =>
+      prev.map((img) => {
+        if (img.id === imageId) {
+          const currentOverlay = img.textOverlay || {
+            text: "",
+            fontSize: 48,
+            fontFamily: "Arial",
+            color: "#ffffff",
+            strokeColor: "#000000",
+            strokeWidth: 2,
+            x: 50,
+            y: 50,
+            rotation: 0,
+            opacity: 90,
+          }
+          return { ...img, textOverlay: { ...currentOverlay, ...textSettings } }
+        }
+        return img
+      }),
+    )
   }, [])
 
   const updateImageGradientOverlay = useCallback((imageId: string, gradientOverlay: string) => {
@@ -449,7 +489,6 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
 
       const generatedImage: UploadedImage = {
         id: Math.random().toString(36).substr(2, 9),
-        file: new File([], `generated_${Date.now()}.jpg`, { type: "image/jpeg" }),
         url: generatedImageUrl,
         name: `Generated: ${generationPrompt.slice(0, 30)}${generationPrompt.length > 30 ? "..." : ""}`,
         size: 1024 * 1024,
@@ -610,13 +649,36 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
             ctx.fillRect(0, 0, targetResolution.width, targetResolution.height)
           }
 
-          // Add text overlay if specified
-          if (image.textOverlay) {
+          if (image.textOverlay && image.textOverlay.text) {
             ctx.filter = "none"
-            ctx.fillStyle = "rgba(255, 255, 255, 0.9)"
-            ctx.font = "bold 48px Arial"
+            ctx.save()
+
+            // Set font properties
+            ctx.font = `bold ${image.textOverlay.fontSize}px ${image.textOverlay.fontFamily}`
             ctx.textAlign = "center"
-            ctx.fillText(image.textOverlay, targetResolution.width / 2, targetResolution.height - 100)
+            ctx.textBaseline = "middle"
+
+            // Calculate position
+            const x = (image.textOverlay.x / 100) * targetResolution.width
+            const y = (image.textOverlay.y / 100) * targetResolution.height
+
+            // Apply rotation and opacity
+            ctx.translate(x, y)
+            ctx.rotate((image.textOverlay.rotation * Math.PI) / 180)
+            ctx.globalAlpha = image.textOverlay.opacity / 100
+
+            // Draw text stroke if enabled
+            if (image.textOverlay.strokeWidth > 0) {
+              ctx.strokeStyle = image.textOverlay.strokeColor
+              ctx.lineWidth = image.textOverlay.strokeWidth
+              ctx.strokeText(image.textOverlay.text, 0, 0)
+            }
+
+            // Draw text fill
+            ctx.fillStyle = image.textOverlay.color
+            ctx.fillText(image.textOverlay.text, 0, 0)
+
+            ctx.restore()
           }
 
           // Add vignette effect
@@ -764,7 +826,6 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
       const imageId = Math.random().toString(36).substr(2, 9)
       const newImage: UploadedImage = {
         id: imageId,
-        file: null as any, // Will be handled differently for external images
         url: imageUrl,
         name: `Random-${favoriteNumber}${isGrayscale ? "-grayscale" : ""}.jpg`,
         size: 0,
@@ -1290,22 +1351,190 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
                               </Select>
                             </div>
 
-                            {/* Text Overlay */}
-                            <div>
-                              <Label className="text-sm text-muted-foreground flex items-center mb-2">
+                            <div className="space-y-3">
+                              <Label className="text-sm text-muted-foreground flex items-center">
                                 <Type className="h-3 w-3 mr-1" />
                                 Text Overlay
                               </Label>
+
+                              {/* Text Input */}
                               <Input
                                 placeholder="Enter text to overlay..."
-                                value={image.textOverlay || ""}
-                                onChange={(e) => updateImageTextOverlay(image.id, e.target.value)}
+                                value={image.textOverlay?.text || ""}
+                                onChange={(e) => updateImageTextOverlay(image.id, { text: e.target.value })}
                                 className="bg-input border-white/20 text-foreground placeholder:text-muted-foreground"
                               />
+
+                              {image.textOverlay?.text && (
+                                <div className="space-y-3 pt-2 border-t border-white/10">
+                                  {/* Font Family */}
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground mb-1 block">Font Family</Label>
+                                    <Select
+                                      value={image.textOverlay.fontFamily}
+                                      onValueChange={(value) => updateImageTextOverlay(image.id, { fontFamily: value })}
+                                    >
+                                      <SelectTrigger className="bg-input border-white/20 text-foreground h-8">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-card border-white/20">
+                                        {FONT_FAMILIES.map((font) => (
+                                          <SelectItem key={font.value} value={font.value}>
+                                            {font.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  {/* Font Size */}
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <Label className="text-xs text-muted-foreground">Font Size</Label>
+                                      <span className="text-xs text-muted-foreground">
+                                        {image.textOverlay.fontSize}px
+                                      </span>
+                                    </div>
+                                    <Slider
+                                      value={[image.textOverlay.fontSize]}
+                                      onValueChange={(value) =>
+                                        updateImageTextOverlay(image.id, { fontSize: value[0] })
+                                      }
+                                      max={120}
+                                      min={12}
+                                      step={2}
+                                      className="w-full"
+                                    />
+                                  </div>
+
+                                  {/* Text Color */}
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground mb-1 block">Text Color</Label>
+                                    <div className="flex items-center space-x-2">
+                                      <input
+                                        type="color"
+                                        value={image.textOverlay.color}
+                                        onChange={(e) => updateImageTextOverlay(image.id, { color: e.target.value })}
+                                        className="w-8 h-8 rounded border border-white/20 bg-transparent cursor-pointer"
+                                      />
+                                      <Input
+                                        value={image.textOverlay.color}
+                                        onChange={(e) => updateImageTextOverlay(image.id, { color: e.target.value })}
+                                        className="bg-input border-white/20 text-foreground h-8 text-xs"
+                                        placeholder="#ffffff"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Stroke Settings */}
+                                  <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">Text Stroke</Label>
+                                    <div className="flex items-center space-x-2">
+                                      <input
+                                        type="color"
+                                        value={image.textOverlay.strokeColor}
+                                        onChange={(e) =>
+                                          updateImageTextOverlay(image.id, { strokeColor: e.target.value })
+                                        }
+                                        className="w-6 h-6 rounded border border-white/20 bg-transparent cursor-pointer"
+                                      />
+                                      <div className="flex-1">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-xs text-muted-foreground">Width</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {image.textOverlay.strokeWidth}px
+                                          </span>
+                                        </div>
+                                        <Slider
+                                          value={[image.textOverlay.strokeWidth]}
+                                          onValueChange={(value) =>
+                                            updateImageTextOverlay(image.id, { strokeWidth: value[0] })
+                                          }
+                                          max={10}
+                                          min={0}
+                                          step={1}
+                                          className="w-full"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Position Controls */}
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-xs text-muted-foreground">X Position</Label>
+                                        <span className="text-xs text-muted-foreground">{image.textOverlay.x}%</span>
+                                      </div>
+                                      <Slider
+                                        value={[image.textOverlay.x]}
+                                        onValueChange={(value) => updateImageTextOverlay(image.id, { x: value[0] })}
+                                        max={100}
+                                        min={0}
+                                        step={1}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-xs text-muted-foreground">Y Position</Label>
+                                        <span className="text-xs text-muted-foreground">{image.textOverlay.y}%</span>
+                                      </div>
+                                      <Slider
+                                        value={[image.textOverlay.y]}
+                                        onValueChange={(value) => updateImageTextOverlay(image.id, { y: value[0] })}
+                                        max={100}
+                                        min={0}
+                                        step={1}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Rotation and Opacity */}
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-xs text-muted-foreground">Rotation</Label>
+                                        <span className="text-xs text-muted-foreground">
+                                          {image.textOverlay.rotation}°
+                                        </span>
+                                      </div>
+                                      <Slider
+                                        value={[image.textOverlay.rotation]}
+                                        onValueChange={(value) =>
+                                          updateImageTextOverlay(image.id, { rotation: value[0] })
+                                        }
+                                        max={180}
+                                        min={-180}
+                                        step={5}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-xs text-muted-foreground">Opacity</Label>
+                                        <span className="text-xs text-muted-foreground">
+                                          {image.textOverlay.opacity}%
+                                        </span>
+                                      </div>
+                                      <Slider
+                                        value={[image.textOverlay.opacity]}
+                                        onValueChange={(value) =>
+                                          updateImageTextOverlay(image.id, { opacity: value[0] })
+                                        }
+                                        max={100}
+                                        min={10}
+                                        step={5}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </TabsContent>
                         </Tabs>
-
                         <div className="flex space-x-2 mt-4">
                           <Button
                             size="sm"
@@ -1360,7 +1589,7 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
                 <Button variant="outline" className="border-white/20 hover:bg-white/10 bg-transparent" disabled>
                   Upload Images Above
                 </Button>
-{/*                 <Button
+                {/*                 <Button
                   variant="outline"
                   className="border-white/20 hover:bg-white/10 bg-transparent"
                   onClick={() => setIsGenerateOpen(true)}
