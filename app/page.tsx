@@ -1360,14 +1360,14 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
                 <Button variant="outline" className="border-white/20 hover:bg-white/10 bg-transparent" disabled>
                   Upload Images Above
                 </Button>
-                <Button
+{/*                 <Button
                   variant="outline"
                   className="border-white/20 hover:bg-white/10 bg-transparent"
                   onClick={() => setIsGenerateOpen(true)}
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Generate AI Wallpaper
-                </Button>
+                </Button> */}
               </div>
             </CardContent>
           </Card>
