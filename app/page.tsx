@@ -887,6 +887,33 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
     }
   }
 
+  const removeImage = useCallback(
+    (imageId: string) => {
+      setUploadedImages((prev) => {
+        const updatedImages = prev.filter((img) => img.id !== imageId)
+
+        // Clear live preview if the removed image was being previewed
+        if (livePreviewImage?.id === imageId) {
+          setLivePreviewImage(null)
+        }
+
+        // Clear selected image if the removed image was selected
+        if (selectedImage?.id === imageId) {
+          setSelectedImage(null)
+          setIsViewerOpen(false)
+        }
+
+        return updatedImages
+      })
+
+      toast({
+        title: "Image Removed",
+        description: "The image has been successfully removed from your collection.",
+      })
+    },
+    [livePreviewImage, selectedImage, toast],
+  )
+
   const uploadedImagesList = uploadedImages.filter((img) => img.isUploaded)
 
   return (
@@ -1646,6 +1673,14 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
                             className="border-white/20 hover:bg-white/10"
                           >
                             <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => removeImage(image.id)}
+                            className="border-white/20 hover:bg-white/10"
+                          >
+                            Remove
                           </Button>
                         </div>
                       </CardContent>
