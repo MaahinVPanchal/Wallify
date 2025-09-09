@@ -53,6 +53,62 @@ WallCraft is a beautiful desktop wallpaper management application that lets you 
 - **Nature Lovers**: Rotate through scenic landscapes automatically
 - **Minimalists**: Keep a clean, organized wallpaper collection
 
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn package manager
+- Git
+
+### Installation & Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/maahinvpanchals-projects/v0-desktop-application-design.git
+   cd v0-desktop-application-design
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. **Run the development server**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+4. **Open your browser**
+   Navigate to `http://localhost:3000` to see the application running locally.
+
+### Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build the application for production
+- `npm run start` - Start the production server
+- `npm run lint` - Run ESLint for code linting
+
+### Tech Stack
+
+- **Frontend**: Next.js 14.2.16, React 18, TypeScript 5
+- **Styling**: Tailwind CSS 4.1.9 with animations
+- **UI Components**: Radix UI primitives, shadcn/ui
+- **Forms**: React Hook Form with Zod validation
+- **Charts**: Recharts for data visualization
+- **Icons**: Lucide React
+- **Deployment**: Vercel
+
+### Build for Production
+
+```bash
+npm run build
+npm run start
+```
 ## Live Demo
 
 Experience WallCraft in action:
