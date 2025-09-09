@@ -279,6 +279,40 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
   const [isGiftHovered, setIsGiftHovered] = useState(false)
   const [isGrayscale, setIsGrayscale] = useState(false)
 
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+
+  const handleTextDragStart = (e: React.MouseEvent, imageId: string) => {
+    if (!livePreviewImage || livePreviewImage.id !== imageId) return
+
+    setIsDragging(true)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const parentRect = e.currentTarget.parentElement!.getBoundingClientRect()
+
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    })
+  }
+
+  const handleTextDrag = (e: React.MouseEvent) => {
+    if (!isDragging || !livePreviewImage) return
+
+    const previewRect = e.currentTarget.getBoundingClientRect()
+    const newX = ((e.clientX - dragOffset.x - previewRect.left) / previewRect.width) * 100
+    const newY = ((e.clientY - dragOffset.y - previewRect.top) / previewRect.height) * 100
+
+    // Clamp values between 0 and 100
+    const clampedX = Math.max(0, Math.min(100, newX))
+    const clampedY = Math.max(0, Math.min(100, newY))
+
+    updateImageTextOverlay(livePreviewImage.id, { x: clampedX, y: clampedY })
+  }
+
+  const handleTextDragEnd = () => {
+    setIsDragging(false)
+  }
+
   useEffect(() => {
     if (!isSchedulerActive || uploadedImages.length === 0) return
 
@@ -927,8 +961,11 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
               </div>
             </div>
             <div
-              className="relative bg-black rounded-lg overflow-hidden"
+              className="relative bg-black rounded-lg overflow-hidden cursor-crosshair"
               style={{ aspectRatio: userScreenSize.replace("x", "/") }}
+              onMouseMove={handleTextDrag}
+              onMouseUp={handleTextDragEnd}
+              onMouseLeave={handleTextDragEnd}
             >
               <img
                 src={livePreviewImage.url || "/placeholder.svg"}
@@ -938,9 +975,51 @@ function Dashboard({ userScreenSize }: { userScreenSize: string }) {
                   filter: `brightness(${livePreviewImage.adjustments.brightness}%) contrast(${livePreviewImage.adjustments.contrast}%) saturate(${livePreviewImage.adjustments.saturation}%) hue-rotate(${livePreviewImage.adjustments.hue}deg) blur(${livePreviewImage.adjustments.blur}px) opacity(${livePreviewImage.adjustments.opacity}%)`,
                 }}
               />
+
+              {livePreviewImage.gradientOverlay && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background:
+                      GRADIENT_OVERLAYS.find((g) => g.value === livePreviewImage.gradientOverlay)?.label || "none",
+                    opacity: 0.6,
+                  }}
+                />
+              )}
+
+              {livePreviewImage.textOverlay?.text && (
+                <div
+                  className="absolute cursor-move select-none z-10"
+                  style={{
+                    left: `${livePreviewImage.textOverlay.x}%`,
+                    top: `${livePreviewImage.textOverlay.y}%`,
+                    transform: `translate(-50%, -50%) rotate(${livePreviewImage.textOverlay.rotation}deg)`,
+                    fontSize: `${Math.max(12, livePreviewImage.textOverlay.fontSize * 0.5)}px`,
+                    fontFamily: livePreviewImage.textOverlay.fontFamily,
+                    color: livePreviewImage.textOverlay.color,
+                    opacity: livePreviewImage.textOverlay.opacity / 100,
+                    textShadow:
+                      livePreviewImage.textOverlay.strokeWidth > 0
+                        ? `${livePreviewImage.textOverlay.strokeWidth}px ${livePreviewImage.textOverlay.strokeWidth}px 0 ${livePreviewImage.textOverlay.strokeColor}, -${livePreviewImage.textOverlay.strokeWidth}px -${livePreviewImage.textOverlay.strokeWidth}px 0 ${livePreviewImage.textOverlay.strokeColor}, ${livePreviewImage.textOverlay.strokeWidth}px -${livePreviewImage.textOverlay.strokeWidth}px 0 ${livePreviewImage.textOverlay.strokeColor}, -${livePreviewImage.textOverlay.strokeWidth}px ${livePreviewImage.textOverlay.strokeWidth}px 0 ${livePreviewImage.textOverlay.strokeColor}`
+                        : "none",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                  }}
+                  onMouseDown={(e) => handleTextDragStart(e, livePreviewImage.id)}
+                >
+                  {livePreviewImage.textOverlay.text}
+                </div>
+              )}
+
               <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
                 {livePreviewImage.name}
               </div>
+
+              {livePreviewImage.textOverlay?.text && (
+                <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-xs">
+                  Drag text to reposition
+                </div>
+              )}
             </div>
           </div>
         </div>
