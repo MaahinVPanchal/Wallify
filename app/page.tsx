@@ -2,21 +2,17 @@
 
 import type React from "react"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog"
+import { Progress } from "@/components/ui/progress"
+import { Slider } from "@/components/ui/slider"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Monitor,
   Palette,
@@ -26,15 +22,25 @@ import {
   ChevronRight,
   Sun,
   Eye,
+  Sparkles,
   Download,
   Settings,
   CheckCircle,
   Wand2,
+  Contrast,
+  Droplets,
+  Focus,
+  Paintbrush,
+  Beer as Blur,
+  Circle,
+  Layers,
+  Type,
+  Crop,
+  Filter,
   Clock,
   Gift,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { Checkbox } from "@/components/ui/checkbox"
 
 interface ImageAdjustments {
   brightness: number
@@ -61,7 +67,8 @@ interface UploadedImage {
   processedUrl?: string
   isProcessing?: boolean
   isGenerated?: boolean
-  isFromPicsum?: boolean
+  textOverlay?: string
+  gradientOverlay?: string
 }
 
 const SCREEN_RESOLUTIONS = {
@@ -102,6 +109,15 @@ const FILTER_PRESETS = [
   { value: "cool", label: "Cool Blue" },
   { value: "warm", label: "Warm Orange" },
   { value: "grayscale", label: "Grayscale" },
+]
+
+const GRADIENT_OVERLAYS = [
+  { value: "none", label: "None" },
+  { value: "sunset", label: "Sunset" },
+  { value: "ocean", label: "Ocean" },
+  { value: "forest", label: "Forest" },
+  { value: "purple", label: "Purple Dream" },
+  { value: "fire", label: "Fire" },
 ]
 
 export default function WallpaperApp() {
@@ -219,29 +235,47 @@ export default function WallpaperApp() {
   )
 }
 
-interface DashboardProps {
-  userScreenSize: string
-}
-
-function Dashboard({ userScreenSize }: DashboardProps) {
+function Dashboard({ userScreenSize }: { userScreenSize: string }) {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([])
-  const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
-  const [viewerImageId, setViewerImageId] = useState<string | null>(null)
-  const [isGiftOpen, setIsGiftOpen] = useState(false)
-  const [favoriteNumber, setFavoriteNumber] = useState("")
-  const [isGrayscale, setIsGrayscale] = useState(false)
-  const [giftButtonScale, setGiftButtonScale] = useState(1)
-  const { toast } = useToast()
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const [generationPrompt, setGenerationPrompt] = useState("")
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generationStyle, setGenerationStyle] = useState("Abstract")
+  const [isUploading, setIsUploading] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<UploadedImage | null>(null)
+  const [isViewerOpen, setIsViewerOpen] = useState(false)
   const [isGenerateOpen, setIsGenerateOpen] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationPrompt, setGenerationPrompt] = useState("")
+  const [generationStyle, setGenerationStyle] = useState("Abstract")
   const [livePreviewImage, setLivePreviewImage] = useState<UploadedImage | null>(null)
   const [isSchedulerActive, setIsSchedulerActive] = useState(false)
-  const [schedulerInterval, setSchedulerInterval] = useState(60)
+  const [schedulerInterval, setSchedulerInterval] = useState(30)
+  const [currentSchedulerIndex, setCurrentSchedulerIndex] = useState(0)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
+
+  const [isGiftModalOpen, setIsGiftModalOpen] = useState(false)
+  const [favoriteNumber, setFavoriteNumber] = useState("")
+  const [isGiftHovered, setIsGiftHovered] = useState(false)
+  const [isGrayscale, setIsGrayscale] = useState(false)
+
+  useEffect(() => {
+    if (!isSchedulerActive || uploadedImages.length === 0) return
+
+    const interval = setInterval(() => {
+      const uploadedImagesList = uploadedImages.filter((img) => img.isUploaded)
+      if (uploadedImagesList.length === 0) return
+
+      const nextIndex = (currentSchedulerIndex + 1) % uploadedImagesList.length
+      setCurrentSchedulerIndex(nextIndex)
+      setLivePreviewImage(uploadedImagesList[nextIndex])
+
+      toast({
+        title: "Wallpaper Rotated",
+        description: `Now showing: ${uploadedImagesList[nextIndex].name}`,
+      })
+    }, schedulerInterval * 1000)
+
+    return () => clearInterval(interval)
+  }, [isSchedulerActive, schedulerInterval, currentSchedulerIndex, uploadedImages, toast])
 
   const createDefaultAdjustments = (): ImageAdjustments => ({
     brightness: 100,
@@ -349,56 +383,13 @@ function Dashboard({ userScreenSize }: DashboardProps) {
     setUploadedImages((prev) => prev.map((img) => (img.id === imageId ? { ...img, filter } : img)))
   }, [])
 
-  const handleGiftGenerate = async () => {
-    const num = Number.parseInt(favoriteNumber)
-    if (!num || num < 1 || num > 1084) {
-      toast({
-        title: "Invalid Number",
-        description: "Please enter a number between 1 and 1084.",
-        variant: "destructive",
-      })
-      return
-    }
+  const updateImageTextOverlay = useCallback((imageId: string, textOverlay: string) => {
+    setUploadedImages((prev) => prev.map((img) => (img.id === imageId ? { ...img, textOverlay } : img)))
+  }, [])
 
-    if (uploadedImages.length >= 20) {
-      toast({
-        title: "Gallery Full",
-        description: "Please remove some images before adding new ones.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const targetResolution =
-      SCREEN_RESOLUTIONS[userScreenSize as keyof typeof SCREEN_RESOLUTIONS] || SCREEN_RESOLUTIONS["1920x1080"]
-
-    const grayscaleParam = isGrayscale ? "?grayscale" : ""
-    const picsumUrl = `https://picsum.photos/id/${num}/${targetResolution.width}/${targetResolution.height}${grayscaleParam}`
-
-    const imageId = Math.random().toString(36).substr(2, 9)
-    const newImage: UploadedImage = {
-      id: imageId,
-      file: new File([], `picsum-${num}.jpg`, { type: "image/jpeg" }),
-      url: picsumUrl,
-      name: `Random Image ${num}${isGrayscale ? " (Grayscale)" : ""}`,
-      size: 0,
-      uploadProgress: 100,
-      isUploaded: true,
-      adjustments: createDefaultAdjustments(),
-      cropMode: "fill",
-      filter: "none",
-      isFromPicsum: true,
-    }
-
-    setUploadedImages((prev) => [...prev, newImage])
-    setIsGiftOpen(false)
-    setFavoriteNumber("")
-
-    toast({
-      title: "Random Image Added!",
-      description: `Added image #${num} to your collection.`,
-    })
-  }
+  const updateImageGradientOverlay = useCallback((imageId: string, gradientOverlay: string) => {
+    setUploadedImages((prev) => prev.map((img) => (img.id === imageId ? { ...img, gradientOverlay } : img)))
+  }, [])
 
   const scrollGallery = useCallback((direction: "left" | "right") => {
     if (scrollContainerRef.current) {
@@ -410,24 +401,24 @@ function Dashboard({ userScreenSize }: DashboardProps) {
   }, [])
 
   const openImageViewer = useCallback((image: UploadedImage) => {
-    setSelectedImageId(image.id)
-    setViewerImageId(image.id)
+    setSelectedImage(image)
+    setIsViewerOpen(true)
   }, [])
 
   const navigateImage = useCallback(
     (direction: "prev" | "next") => {
-      if (!viewerImageId) return
+      if (!selectedImage) return
 
       const uploadedImagesList = uploadedImages.filter((img) => img.isUploaded)
-      const currentIndex = uploadedImagesList.findIndex((img) => img.id === viewerImageId)
+      const currentIndex = uploadedImagesList.findIndex((img) => img.id === selectedImage.id)
 
       if (direction === "prev" && currentIndex > 0) {
-        setViewerImageId(uploadedImagesList[currentIndex - 1].id)
+        setSelectedImage(uploadedImagesList[currentIndex - 1])
       } else if (direction === "next" && currentIndex < uploadedImagesList.length - 1) {
-        setViewerImageId(uploadedImagesList[currentIndex + 1].id)
+        setSelectedImage(uploadedImagesList[currentIndex + 1])
       }
     },
-    [viewerImageId, uploadedImages],
+    [selectedImage, uploadedImages],
   )
 
   const generateWallpaper = useCallback(async () => {
@@ -587,6 +578,47 @@ function Dashboard({ userScreenSize }: DashboardProps) {
           // Draw the image
           ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
 
+          // Add gradient overlay if specified
+          if (image.gradientOverlay && image.gradientOverlay !== "none") {
+            ctx.filter = "none" // Reset filter for overlay
+            const gradient = ctx.createLinearGradient(0, 0, targetResolution.width, targetResolution.height)
+
+            switch (image.gradientOverlay) {
+              case "sunset":
+                gradient.addColorStop(0, "rgba(255, 94, 77, 0.3)")
+                gradient.addColorStop(1, "rgba(255, 154, 0, 0.3)")
+                break
+              case "ocean":
+                gradient.addColorStop(0, "rgba(0, 119, 190, 0.3)")
+                gradient.addColorStop(1, "rgba(0, 180, 216, 0.3)")
+                break
+              case "forest":
+                gradient.addColorStop(0, "rgba(76, 175, 80, 0.3)")
+                gradient.addColorStop(1, "rgba(139, 195, 74, 0.3)")
+                break
+              case "purple":
+                gradient.addColorStop(0, "rgba(156, 39, 176, 0.3)")
+                gradient.addColorStop(1, "rgba(103, 58, 183, 0.3)")
+                break
+              case "fire":
+                gradient.addColorStop(0, "rgba(244, 67, 54, 0.3)")
+                gradient.addColorStop(1, "rgba(255, 193, 7, 0.3)")
+                break
+            }
+
+            ctx.fillStyle = gradient
+            ctx.fillRect(0, 0, targetResolution.width, targetResolution.height)
+          }
+
+          // Add text overlay if specified
+          if (image.textOverlay) {
+            ctx.filter = "none"
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)"
+            ctx.font = "bold 48px Arial"
+            ctx.textAlign = "center"
+            ctx.fillText(image.textOverlay, targetResolution.width / 2, targetResolution.height - 100)
+          }
+
           // Add vignette effect
           if (image.adjustments.vignette > 0) {
             const vignetteGradient = ctx.createRadialGradient(
@@ -652,7 +684,7 @@ function Dashboard({ userScreenSize }: DashboardProps) {
         })
       }
     },
-    [processImageForWallpaper, toast, setLivePreviewImage],
+    [processImageForWallpaper, toast],
   )
 
   const autoEnhanceImage = useCallback(
@@ -704,10 +736,66 @@ function Dashboard({ userScreenSize }: DashboardProps) {
     [processImageForWallpaper],
   )
 
+  const handleGiftClick = async () => {
+    if (!favoriteNumber || Number.parseInt(favoriteNumber) < 1 || Number.parseInt(favoriteNumber) > 1084) {
+      toast({
+        title: "Invalid Number",
+        description: "Please enter a number between 1 and 1084",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (uploadedImages.length >= 20) {
+      toast({
+        title: "Gallery Full",
+        description: "Remove some images to add new ones (max 20)",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const [width, height] = userScreenSize.split("x").map(Number)
+      const grayscaleParam = isGrayscale ? "?grayscale" : ""
+      const imageUrl = `https://picsum.photos/id/${favoriteNumber}/${width}/${height}${grayscaleParam}`
+
+      // Create a new image entry
+      const imageId = Math.random().toString(36).substr(2, 9)
+      const newImage: UploadedImage = {
+        id: imageId,
+        file: null as any, // Will be handled differently for external images
+        url: imageUrl,
+        name: `Random-${favoriteNumber}${isGrayscale ? "-grayscale" : ""}.jpg`,
+        size: 0,
+        uploadProgress: 100,
+        isUploaded: true,
+        adjustments: createDefaultAdjustments(),
+        cropMode: "fill",
+        filter: "none",
+      }
+
+      setUploadedImages((prev) => [...prev, newImage])
+      setIsGiftModalOpen(false)
+      setFavoriteNumber("")
+
+      toast({
+        title: "Random Image Added!",
+        description: `Added image #${favoriteNumber} to your gallery`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch random image",
+        variant: "destructive",
+      })
+    }
+  }
+
   const uploadedImagesList = uploadedImages.filter((img) => img.isUploaded)
 
   return (
-    <main className="min-h-screen gradient-bg p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="gradient-bg p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -797,18 +885,28 @@ function Dashboard({ userScreenSize }: DashboardProps) {
         </div>
       )}
 
-      {uploadedImages.length === 0 ? (
-        <Card className="anime-card magical-glow max-w-2xl mx-auto">
-          <CardContent className="p-12 text-center">
-            <div
-              className="border-2 border-dashed border-white/30 rounded-lg p-12 transition-all duration-300 hover:border-white/50 hover:bg-white/5"
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <Upload className="h-16 w-16 mx-auto mb-6 text-white/60" />
-              <h3 className="text-2xl font-bold mb-4 text-white">Upload Wallpapers</h3>
-              <p className="text-white/80 mb-6 text-lg">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto p-6">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Your Wallpapers</h2>
+          <p className="text-muted-foreground">
+            Upload and manage your desktop wallpapers ({uploadedImages.length}/20) • Target: {userScreenSize}
+          </p>
+        </div>
+
+        {/* Upload Area */}
+        <Card
+          className={`gradient-card mb-8 transition-all duration-200 ${isDragOver ? "ring-2 ring-primary scale-[1.02]" : ""}`}
+        >
+          <CardContent className="p-8">
+            <div className="text-center" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+              <Upload
+                className={`h-12 w-12 mx-auto mb-4 transition-colors ${isDragOver ? "text-primary" : "text-primary"}`}
+              />
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {isDragOver ? "Drop your images here" : "Upload Wallpapers"}
+              </h3>
+              <p className="text-muted-foreground mb-4">
                 {isDragOver ? "Release to upload your images" : "Drag and drop your images here or click to browse"}
               </p>
               <input
@@ -835,114 +933,546 @@ function Dashboard({ userScreenSize }: DashboardProps) {
             </div>
           </CardContent>
         </Card>
-      ) : (
-        <ImageGallery
-          images={uploadedImages}
-          onImageSelect={setSelectedImageId}
-          onImageRemove={(imageId) => {
-            setUploadedImages((prev) => prev.filter((img) => img.id !== imageId))
-            if (selectedImageId === imageId) {
-              setSelectedImageId(null)
-            }
-          }}
-          onImageUpdate={(imageId, updates) => {
-            setUploadedImages((prev) => prev.map((img) => (img.id === imageId ? { ...img, ...updates } : img)))
-          }}
-          onImageView={setViewerImageId}
-          userScreenSize={userScreenSize}
-          onAddMore={() => document.getElementById("file-upload-more")?.click()}
-          maxImages={20}
-        />
-      )}
 
-      <input
-        type="file"
-        multiple
-        accept="image/*"
-        onChange={(e) => handleFileSelect(e.target.files)}
-        className="hidden"
-        id="file-upload-more"
-        disabled={uploadedImages.length >= 20 || isUploading}
-      />
+        {/* Upload Progress */}
+        {isUploading && (
+          <Card className="gradient-card mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <Upload className="h-5 w-5 text-primary animate-pulse" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground mb-1">Uploading images...</p>
+                  <div className="space-y-2">
+                    {uploadedImages
+                      .filter((img) => !img.isUploaded)
+                      .map((image) => (
+                        <div key={image.id} className="flex items-center space-x-3">
+                          <span className="text-xs text-muted-foreground w-32 truncate">{image.name}</span>
+                          <Progress value={image.uploadProgress} className="flex-1" />
+                          <span className="text-xs text-muted-foreground w-12">{image.uploadProgress}%</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      <div className="fixed bottom-6 right-6">
-        <Button
-          className="gradient-bg border-0 hover:opacity-90 shadow-lg h-14 w-14 rounded-full p-0 transition-transform duration-200"
-          onClick={() => setIsGiftOpen(true)}
-          disabled={uploadedImages.length >= 20}
-          onMouseEnter={() => setGiftButtonScale(1.1)}
-          onMouseLeave={() => setGiftButtonScale(1)}
-          style={{ transform: `scale(${giftButtonScale})` }}
-        >
-          <Gift className="h-6 w-6" />
-        </Button>
-      </div>
+        {uploadedImagesList.length > 0 && (
+          <Card className="gradient-card mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-foreground flex items-center">
+                  <ImageIcon className="h-5 w-5 mr-2" />
+                  Wallpaper Gallery ({uploadedImagesList.length})
+                </CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => scrollGallery("left")}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => scrollGallery("right")}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div
+                ref={scrollContainerRef}
+                className="flex space-x-4 overflow-x-auto scrollbar-hide pb-4"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {uploadedImagesList.map((image) => (
+                  <div key={image.id} className="flex-shrink-0 w-96">
+                    <Card className="gradient-card border-white/10">
+                      <CardContent className="p-4">
+                        <div className="aspect-video bg-muted rounded-lg mb-3 overflow-hidden relative group cursor-pointer">
+                          <img
+                            src={image.url || "/placeholder.svg"}
+                            alt={image.name}
+                            className="w-full h-full object-cover transition-all duration-300"
+                            style={{
+                              filter: `brightness(${image.adjustments.brightness}%) contrast(${image.adjustments.contrast}%) saturate(${image.adjustments.saturation}%) hue-rotate(${image.adjustments.hue}deg) blur(${image.adjustments.blur}px) opacity(${image.adjustments.opacity}%)`,
+                            }}
+                            onClick={() => openImageViewer(image)}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                            <Eye className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          </div>
+                          {image.processedUrl && (
+                            <div className="absolute top-2 right-2">
+                              <CheckCircle className="h-5 w-5 text-green-500 bg-background/80 rounded-full" />
+                            </div>
+                          )}
+                          {image.isGenerated && (
+                            <div className="absolute top-2 left-2">
+                              <div className="flex items-center space-x-1 bg-primary/90 text-primary-foreground px-2 py-1 rounded-full text-xs">
+                                <Wand2 className="h-3 w-3" />
+                                <span>AI</span>
+                              </div>
+                            </div>
+                          )}
+                          {livePreviewImage?.id === image.id && (
+                            <div className="absolute bottom-2 left-2">
+                              <div className="flex items-center space-x-1 bg-green-500/90 text-white px-2 py-1 rounded-full text-xs">
+                                <Monitor className="h-3 w-3" />
+                                <span>Live</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
-      <Dialog open={isGiftOpen} onOpenChange={setIsGiftOpen}>
+                        <h4 className="font-medium text-foreground mb-3 truncate">{image.name}</h4>
+
+                        <Tabs defaultValue="basic" className="w-full">
+                          <TabsList className="grid w-full grid-cols-4 mb-4">
+                            <TabsTrigger value="basic" className="text-xs">
+                              Basic
+                            </TabsTrigger>
+                            <TabsTrigger value="advanced" className="text-xs">
+                              Advanced
+                            </TabsTrigger>
+                            <TabsTrigger value="style" className="text-xs">
+                              Style
+                            </TabsTrigger>
+                            <TabsTrigger value="overlay" className="text-xs">
+                              Overlay
+                            </TabsTrigger>
+                          </TabsList>
+
+                          <TabsContent value="basic" className="space-y-4">
+                            {/* Brightness Control */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm text-muted-foreground flex items-center">
+                                  <Sun className="h-3 w-3 mr-1" />
+                                  Brightness
+                                </Label>
+                                <span className="text-xs text-muted-foreground">{image.adjustments.brightness}%</span>
+                              </div>
+                              <Slider
+                                value={[image.adjustments.brightness]}
+                                onValueChange={(value) => updateImageAdjustment(image.id, "brightness", value[0])}
+                                max={200}
+                                min={20}
+                                step={5}
+                                className="w-full"
+                              />
+                            </div>
+
+                            {/* Contrast Control */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm text-muted-foreground flex items-center">
+                                  <Contrast className="h-3 w-3 mr-1" />
+                                  Contrast
+                                </Label>
+                                <span className="text-xs text-muted-foreground">{image.adjustments.contrast}%</span>
+                              </div>
+                              <Slider
+                                value={[image.adjustments.contrast]}
+                                onValueChange={(value) => updateImageAdjustment(image.id, "contrast", value[0])}
+                                max={200}
+                                min={50}
+                                step={5}
+                                className="w-full"
+                              />
+                            </div>
+
+                            {/* Saturation Control */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm text-muted-foreground flex items-center">
+                                  <Droplets className="h-3 w-3 mr-1" />
+                                  Saturation
+                                </Label>
+                                <span className="text-xs text-muted-foreground">{image.adjustments.saturation}%</span>
+                              </div>
+                              <Slider
+                                value={[image.adjustments.saturation]}
+                                onValueChange={(value) => updateImageAdjustment(image.id, "saturation", value[0])}
+                                max={200}
+                                min={0}
+                                step={5}
+                                className="w-full"
+                              />
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="advanced" className="space-y-4">
+                            {/* Sharpness Control */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm text-muted-foreground flex items-center">
+                                  <Focus className="h-3 w-3 mr-1" />
+                                  Sharpness
+                                </Label>
+                                <span className="text-xs text-muted-foreground">{image.adjustments.sharpness}%</span>
+                              </div>
+                              <Slider
+                                value={[image.adjustments.sharpness]}
+                                onValueChange={(value) => updateImageAdjustment(image.id, "sharpness", value[0])}
+                                max={200}
+                                min={50}
+                                step={5}
+                                className="w-full"
+                              />
+                            </div>
+
+                            {/* Hue Control */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm text-muted-foreground flex items-center">
+                                  <Paintbrush className="h-3 w-3 mr-1" />
+                                  Hue Shift
+                                </Label>
+                                <span className="text-xs text-muted-foreground">{image.adjustments.hue}°</span>
+                              </div>
+                              <Slider
+                                value={[image.adjustments.hue]}
+                                onValueChange={(value) => updateImageAdjustment(image.id, "hue", value[0])}
+                                max={180}
+                                min={-180}
+                                step={5}
+                                className="w-full"
+                              />
+                            </div>
+
+                            {/* Blur Control */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm text-muted-foreground flex items-center">
+                                  <Blur className="h-3 w-3 mr-1" />
+                                  Blur
+                                </Label>
+                                <span className="text-xs text-muted-foreground">{image.adjustments.blur}px</span>
+                              </div>
+                              <Slider
+                                value={[image.adjustments.blur]}
+                                onValueChange={(value) => updateImageAdjustment(image.id, "blur", value[0])}
+                                max={20}
+                                min={0}
+                                step={1}
+                                className="w-full"
+                              />
+                            </div>
+
+                            {/* Vignette Control */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm text-muted-foreground flex items-center">
+                                  <Circle className="h-3 w-3 mr-1" />
+                                  Vignette
+                                </Label>
+                                <span className="text-xs text-muted-foreground">{image.adjustments.vignette}%</span>
+                              </div>
+                              <Slider
+                                value={[image.adjustments.vignette]}
+                                onValueChange={(value) => updateImageAdjustment(image.id, "vignette", value[0])}
+                                max={100}
+                                min={0}
+                                step={5}
+                                className="w-full"
+                              />
+                            </div>
+
+                            {/* Opacity Control */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm text-muted-foreground flex items-center">
+                                  <Layers className="h-3 w-3 mr-1" />
+                                  Opacity
+                                </Label>
+                                <span className="text-xs text-muted-foreground">{image.adjustments.opacity}%</span>
+                              </div>
+                              <Slider
+                                value={[image.adjustments.opacity]}
+                                onValueChange={(value) => updateImageAdjustment(image.id, "opacity", value[0])}
+                                max={100}
+                                min={10}
+                                step={5}
+                                className="w-full"
+                              />
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="style" className="space-y-4">
+                            {/* Crop Mode */}
+                            <div>
+                              <Label className="text-sm text-muted-foreground flex items-center mb-2">
+                                <Crop className="h-3 w-3 mr-1" />
+                                Crop & Fit
+                              </Label>
+                              <Select
+                                value={image.cropMode}
+                                onValueChange={(value) => updateImageCropMode(image.id, value)}
+                              >
+                                <SelectTrigger className="bg-input border-white/20 text-foreground">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card border-white/20">
+                                  {CROP_MODES.map((mode) => (
+                                    <SelectItem key={mode.value} value={mode.value}>
+                                      {mode.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Filter Presets */}
+                            <div>
+                              <Label className="text-sm text-muted-foreground flex items-center mb-2">
+                                <Filter className="h-3 w-3 mr-1" />
+                                Filter Preset
+                              </Label>
+                              <Select
+                                value={image.filter}
+                                onValueChange={(value) => updateImageFilter(image.id, value)}
+                              >
+                                <SelectTrigger className="bg-input border-white/20 text-foreground">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card border-white/20">
+                                  {FILTER_PRESETS.map((filter) => (
+                                    <SelectItem key={filter.value} value={filter.value}>
+                                      {filter.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* AI Auto-Enhance Button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => autoEnhanceImage(image.id)}
+                              className="w-full border-white/20 hover:bg-white/10"
+                            >
+                              <Wand2 className="h-3 w-3 mr-2" />
+                              AI Auto-Enhance
+                            </Button>
+                          </TabsContent>
+
+                          <TabsContent value="overlay" className="space-y-4">
+                            {/* Gradient Overlay */}
+                            <div>
+                              <Label className="text-sm text-muted-foreground flex items-center mb-2">
+                                <Layers className="h-3 w-3 mr-1" />
+                                Gradient Overlay
+                              </Label>
+                              <Select
+                                value={image.gradientOverlay || "none"}
+                                onValueChange={(value) => updateImageGradientOverlay(image.id, value)}
+                              >
+                                <SelectTrigger className="bg-input border-white/20 text-foreground">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card border-white/20">
+                                  {GRADIENT_OVERLAYS.map((gradient) => (
+                                    <SelectItem key={gradient.value} value={gradient.value}>
+                                      {gradient.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Text Overlay */}
+                            <div>
+                              <Label className="text-sm text-muted-foreground flex items-center mb-2">
+                                <Type className="h-3 w-3 mr-1" />
+                                Text Overlay
+                              </Label>
+                              <Input
+                                placeholder="Enter text to overlay..."
+                                value={image.textOverlay || ""}
+                                onChange={(e) => updateImageTextOverlay(image.id, e.target.value)}
+                                className="bg-input border-white/20 text-foreground placeholder:text-muted-foreground"
+                              />
+                            </div>
+                          </TabsContent>
+                        </Tabs>
+
+                        <div className="flex space-x-2 mt-4">
+                          <Button
+                            size="sm"
+                            className="flex-1 gradient-bg border-0 hover:opacity-90"
+                            onClick={() => setAsWallpaper(image)}
+                            disabled={image.isProcessing}
+                          >
+                            {image.isProcessing ? (
+                              <>
+                                <Settings className="h-3 w-3 mr-1 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              "Set as Wallpaper"
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => downloadProcessedImage(image)}
+                            className="border-white/20 hover:bg-white/10"
+                            title="Download processed wallpaper"
+                          >
+                            <Download className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openImageViewer(image)}
+                            className="border-white/20 hover:bg-white/10"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Placeholder when no images */}
+        {uploadedImagesList.length === 0 && (
+          <Card className="gradient-card opacity-50">
+            <CardContent className="p-12 text-center">
+              <Monitor className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No wallpapers yet</h3>
+              <p className="text-muted-foreground mb-4">Upload your first wallpaper or generate one with AI</p>
+              <div className="flex gap-2 justify-center">
+                <Button variant="outline" className="border-white/20 hover:bg-white/10 bg-transparent" disabled>
+                  Upload Images Above
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-white/20 hover:bg-white/10 bg-transparent"
+                  onClick={() => setIsGenerateOpen(true)}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate AI Wallpaper
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Generate Button */}
+        <div className="fixed bottom-6 right-6">
+          <Button
+            className={`gradient-bg border-0 hover:opacity-90 shadow-lg h-14 px-6 transition-transform duration-300 ${
+              isGiftHovered ? "scale-110" : "scale-100"
+            }`}
+            onClick={() => setIsGiftModalOpen(true)}
+            onMouseEnter={() => setIsGiftHovered(true)}
+            onMouseLeave={() => setIsGiftHovered(false)}
+            disabled={uploadedImages.length >= 20}
+          >
+            <Gift className="h-5 w-5 mr-2" />
+            Random Image
+          </Button>
+        </div>
+      </main>
+
+      <Dialog open={isGiftModalOpen} onOpenChange={setIsGiftModalOpen}>
         <DialogContent className="max-w-md bg-background/95 backdrop-blur-lg border-white/20">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Gift className="h-5 w-5" />
-              Get Random Wallpaper
+            <DialogTitle className="text-foreground flex items-center">
+              <Gift className="h-5 w-5 mr-2" />
+              Get Random Image
             </DialogTitle>
-            <DialogDescription className="text-white/80">
-              Enter your favorite number (1-1084) to get a random wallpaper from Picsum Photos
-            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="favorite-number" className="text-white">
-                Favorite Number (1-1084)
+
+          <div className="space-y-6 p-4">
+            <div className="space-y-2">
+              <Label htmlFor="favorite-number" className="text-foreground">
+                What's your favorite number? (1-1084)
               </Label>
               <Input
                 id="favorite-number"
                 type="number"
                 min="1"
                 max="1084"
+                placeholder="Enter a number between 1 and 1084"
                 value={favoriteNumber}
                 onChange={(e) => setFavoriteNumber(e.target.value)}
-                placeholder="Enter a number..."
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                className="bg-input border-white/20 text-foreground placeholder:text-muted-foreground"
               />
             </div>
+
             <div className="flex items-center space-x-2">
-              <Checkbox
+              <input
+                type="checkbox"
                 id="grayscale"
                 checked={isGrayscale}
-                onCheckedChange={(checked) => setIsGrayscale(checked as boolean)}
+                onChange={(e) => setIsGrayscale(e.target.checked)}
+                className="rounded border-white/20"
               />
-              <Label htmlFor="grayscale" className="text-white">
-                Grayscale
+              <Label htmlFor="grayscale" className="text-foreground text-sm">
+                Grayscale image
               </Label>
             </div>
+
+            <div className="flex items-center justify-between p-4 bg-muted/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Monitor className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Resolution: {userScreenSize}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Gallery: {uploadedImages.length}/20</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsGiftModalOpen(false)}
+                className="border-white/20 hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGiftClick}
+                disabled={
+                  !favoriteNumber || Number.parseInt(favoriteNumber) < 1 || Number.parseInt(favoriteNumber) > 1084
+                }
+                className="gradient-bg border-0 hover:opacity-90"
+              >
+                <Gift className="h-4 w-4 mr-2" />
+                Get Image
+              </Button>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsGiftOpen(false)} className="border-white/20 text-white">
-              Cancel
-            </Button>
-            <Button onClick={handleGiftGenerate} className="gradient-bg border-0">
-              Get Random Image
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={viewerImageId !== null} onOpenChange={() => setViewerImageId(null)}>
+      <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
         <DialogContent className="max-w-4xl w-full h-[80vh] bg-background/95 backdrop-blur-lg border-white/20">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center justify-between">
+            <DialogTitle className="text-foreground flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <span className="truncate">{uploadedImages.find((img) => img.id === viewerImageId)?.name}</span>
-                {uploadedImages.find((img) => img.id === viewerImageId)?.isGenerated && (
+                <span className="truncate">{selectedImage?.name}</span>
+                {selectedImage?.isGenerated && (
                   <div className="flex items-center space-x-1 bg-primary/20 text-primary px-2 py-1 rounded-full text-xs">
                     <Wand2 className="h-3 w-3" />
                     <span>AI Generated</span>
-                  </div>
-                )}
-                {uploadedImages.find((img) => img.id === viewerImageId)?.isFromPicsum && (
-                  <div className="flex items-center space-x-1 bg-green-500/20 text-green-500 px-2 py-1 rounded-full text-xs">
-                    <ImageIcon className="h-3 w-3" />
-                    <span>Picsum</span>
                   </div>
                 )}
               </div>
@@ -951,22 +1481,22 @@ function Dashboard({ userScreenSize }: DashboardProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigateImage("prev")}
-                  disabled={!viewerImageId || uploadedImages.findIndex((img) => img.id === viewerImageId) === 0}
+                  disabled={!selectedImage || uploadedImagesList.findIndex((img) => img.id === selectedImage.id) === 0}
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  {viewerImageId ? uploadedImages.findIndex((img) => img.id === viewerImageId) + 1 : 0} of{" "}
-                  {uploadedImages.length}
+                  {selectedImage ? uploadedImagesList.findIndex((img) => img.id === selectedImage.id) + 1 : 0} of{" "}
+                  {uploadedImagesList.length}
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => navigateImage("next")}
                   disabled={
-                    !viewerImageId ||
-                    uploadedImages.findIndex((img) => img.id === viewerImageId) === uploadedImages.length - 1
+                    !selectedImage ||
+                    uploadedImagesList.findIndex((img) => img.id === selectedImage.id) === uploadedImagesList.length - 1
                   }
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -976,28 +1506,28 @@ function Dashboard({ userScreenSize }: DashboardProps) {
             </DialogTitle>
           </DialogHeader>
 
-          {viewerImageId && (
+          {selectedImage && (
             <div className="flex-1 flex items-center justify-center p-4">
               <div className="relative max-w-full max-h-full">
                 <img
-                  src={uploadedImages.find((img) => img.id === viewerImageId)?.url || "/placeholder.svg"}
-                  alt={uploadedImages.find((img) => img.id === viewerImageId)?.name}
+                  src={selectedImage.url || "/placeholder.svg"}
+                  alt={selectedImage.name}
                   className="max-w-full max-h-full object-contain rounded-lg"
                   style={{
-                    filter: `brightness(${uploadedImages.find((img) => img.id === viewerImageId)?.adjustments.brightness}%) contrast(${uploadedImages.find((img) => img.id === viewerImageId)?.adjustments.contrast}%) saturate(${uploadedImages.find((img) => img.id === viewerImageId)?.adjustments.saturation}%) hue-rotate(${uploadedImages.find((img) => img.id === viewerImageId)?.adjustments.hue}deg) blur(${uploadedImages.find((img) => img.id === viewerImageId)?.adjustments.blur}px) opacity(${uploadedImages.find((img) => img.id === viewerImageId)?.adjustments.opacity}%)`,
+                    filter: `brightness(${selectedImage.adjustments.brightness}%) contrast(${selectedImage.adjustments.contrast}%) saturate(${selectedImage.adjustments.saturation}%) hue-rotate(${selectedImage.adjustments.hue}deg) blur(${selectedImage.adjustments.blur}px) opacity(${selectedImage.adjustments.opacity}%)`,
                   }}
                 />
               </div>
             </div>
           )}
 
-          {viewerImageId && (
+          {selectedImage && (
             <div className="flex items-center justify-between p-4 border-t border-white/10">
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <Sun className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    Brightness: {uploadedImages.find((img) => img.id === viewerImageId)?.adjustments.brightness}%
+                    Brightness: {selectedImage.adjustments.brightness}%
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -1008,7 +1538,7 @@ function Dashboard({ userScreenSize }: DashboardProps) {
               <div className="flex space-x-2">
                 <Button
                   variant="outline"
-                  onClick={() => downloadProcessedImage(uploadedImages.find((img) => img.id === viewerImageId)!)}
+                  onClick={() => downloadProcessedImage(selectedImage)}
                   className="border-white/20 hover:bg-white/10"
                 >
                   <Download className="h-4 w-4 mr-2" />
@@ -1016,357 +1546,23 @@ function Dashboard({ userScreenSize }: DashboardProps) {
                 </Button>
                 <Button
                   className="gradient-bg border-0 hover:opacity-90"
-                  onClick={() => setAsWallpaper(uploadedImages.find((img) => img.id === viewerImageId)!)}
+                  onClick={() => setAsWallpaper(selectedImage)}
+                  disabled={selectedImage.isProcessing}
                 >
-                  Set as Wallpaper
+                  {selectedImage.isProcessing ? (
+                    <>
+                      <Settings className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Set as Wallpaper"
+                  )}
                 </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
-    </main>
-  )
-}
-
-interface ImageGalleryProps {
-  images: UploadedImage[]
-  onImageSelect: (imageId: string | null) => void
-  onImageRemove: (imageId: string) => void
-  onImageUpdate: (imageId: string, updates: Partial<UploadedImage>) => void
-  onImageView: (imageId: string) => void
-  userScreenSize: string
-  onAddMore: () => void
-  maxImages: number
-}
-
-function ImageGallery({
-  images,
-  onImageSelect,
-  onImageRemove,
-  onImageUpdate,
-  onImageView,
-  userScreenSize,
-  onAddMore,
-  maxImages,
-}: ImageGalleryProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-
-  const scrollGallery = useCallback((direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 320
-      const currentScroll = scrollContainerRef.current.scrollLeft
-      const newScroll = direction === "left" ? currentScroll - scrollAmount : currentScroll + scrollAmount
-      scrollContainerRef.current.scrollTo({ left: newScroll, behavior: "smooth" })
-    }
-  }, [])
-
-  return (
-    <Card className="anime-card magical-glow">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white flex items-center">
-            <ImageIcon className="h-5 w-5 mr-2" />
-            Wallpaper Gallery ({images.length})
-          </CardTitle>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => scrollGallery("left")}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => scrollGallery("right")}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div
-          ref={scrollContainerRef}
-          className="flex space-x-4 overflow-x-auto scrollbar-hide pb-4"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {images.map((image) => (
-            <div key={image.id} className="flex-shrink-0 w-96">
-              <WallpaperCard
-                image={image}
-                onSelect={onImageSelect}
-                onRemove={onImageRemove}
-                onUpdate={onImageUpdate}
-                onImageView={onImageView}
-                userScreenSize={userScreenSize}
-              />
-            </div>
-          ))}
-          {images.length < maxImages && (
-            <div className="flex-shrink-0 w-96 flex items-center justify-center">
-              <Button variant="outline" className="w-full h-full bg-transparent" onClick={onAddMore}>
-                Add More
-              </Button>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-interface WallpaperCardProps {
-  image: UploadedImage
-  onSelect: (imageId: string | null) => void
-  onRemove: (imageId: string) => void
-  onUpdate: (imageId: string, updates: Partial<UploadedImage>) => void
-  onImageView: (imageId: string) => void
-  userScreenSize: string
-}
-
-function WallpaperCard({ image, onSelect, onRemove, onUpdate, onImageView, userScreenSize }: WallpaperCardProps) {
-  const [isProcessing, setIsProcessing] = useState(false)
-  const { toast } = useToast()
-
-  const processImageForWallpaper = useCallback(
-    async (image: UploadedImage): Promise<string> => {
-      return new Promise((resolve) => {
-        const canvas = document.createElement("canvas")
-        const ctx = canvas.getContext("2d")
-        const img = new Image()
-
-        img.crossOrigin = "anonymous"
-        img.onload = () => {
-          const targetResolution =
-            SCREEN_RESOLUTIONS[userScreenSize as keyof typeof SCREEN_RESOLUTIONS] || SCREEN_RESOLUTIONS["1920x1080"]
-
-          canvas.width = targetResolution.width
-          canvas.height = targetResolution.height
-
-          if (!ctx) {
-            resolve(image.url)
-            return
-          }
-
-          // Apply crop mode
-          let drawX = 0,
-            drawY = 0,
-            drawWidth = targetResolution.width,
-            drawHeight = targetResolution.height
-
-          switch (image.cropMode) {
-            case "fill":
-              const scaleX = targetResolution.width / img.width
-              const scaleY = targetResolution.height / img.height
-              const scale = Math.max(scaleX, scaleY)
-              drawWidth = img.width * scale
-              drawHeight = img.height * scale
-              drawX = (targetResolution.width - drawWidth) / 2
-              drawY = (targetResolution.height - drawHeight) / 2
-              break
-            case "fit":
-              const fitScale = Math.min(targetResolution.width / img.width, targetResolution.height / img.height)
-              drawWidth = img.width * fitScale
-              drawHeight = img.height * fitScale
-              drawX = (targetResolution.width - drawWidth) / 2
-              drawY = (targetResolution.height - drawHeight) / 2
-              break
-            case "stretch":
-              // Use full canvas dimensions (default)
-              break
-            case "center":
-              drawWidth = img.width
-              drawHeight = img.height
-              drawX = (targetResolution.width - drawWidth) / 2
-              drawY = (targetResolution.height - drawHeight) / 2
-              break
-          }
-
-          // Build filter string with all adjustments
-          const filters = [
-            `brightness(${image.adjustments.brightness}%)`,
-            `contrast(${image.adjustments.contrast}%)`,
-            `saturate(${image.adjustments.saturation}%)`,
-            `hue-rotate(${image.adjustments.hue}deg)`,
-            `blur(${image.adjustments.blur}px)`,
-            `opacity(${image.adjustments.opacity}%)`,
-          ]
-
-          // Add filter presets
-          switch (image.filter) {
-            case "vintage":
-              filters.push("sepia(0.5)", "contrast(1.2)", "brightness(1.1)")
-              break
-            case "sepia":
-              filters.push("sepia(1)")
-              break
-            case "neon":
-              filters.push("saturate(2)", "contrast(1.5)", "brightness(1.2)")
-              break
-            case "dark":
-              filters.push("brightness(0.7)", "contrast(1.3)")
-              break
-            case "cool":
-              filters.push("hue-rotate(180deg)", "saturate(1.2)")
-              break
-            case "warm":
-              filters.push("hue-rotate(30deg)", "saturate(1.1)")
-              break
-            case "grayscale":
-              filters.push("grayscale(1)")
-              break
-          }
-
-          ctx.filter = filters.join(" ")
-
-          // Draw the image
-          ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
-
-          // Add vignette effect
-          if (image.adjustments.vignette > 0) {
-            const vignetteGradient = ctx.createRadialGradient(
-              targetResolution.width / 2,
-              targetResolution.height / 2,
-              0,
-              targetResolution.width / 2,
-              targetResolution.height / 2,
-              Math.max(targetResolution.width, targetResolution.height) / 2,
-            )
-            vignetteGradient.addColorStop(0, "rgba(0, 0, 0, 0)")
-            vignetteGradient.addColorStop(1, `rgba(0, 0, 0, ${image.adjustments.vignette / 100})`)
-
-            ctx.fillStyle = vignetteGradient
-            ctx.fillRect(0, 0, targetResolution.width, targetResolution.height)
-          }
-
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                resolve(URL.createObjectURL(blob))
-              } else {
-                resolve(image.url)
-              }
-            },
-            "image/jpeg",
-            0.9,
-          )
-        }
-
-        img.src = image.url
-      })
-    },
-    [userScreenSize],
-  )
-
-  const setAsWallpaper = useCallback(
-    async (image: UploadedImage) => {
-      setIsProcessing(true)
-
-      try {
-        const processedUrl = await processImageForWallpaper(image)
-
-        onUpdate(image.id, { processedUrl })
-
-        setTimeout(() => {
-          toast({
-            title: "Wallpaper Set Successfully!",
-            description: `${image.name} has been processed and set as your desktop wallpaper.`,
-          })
-        }, 500)
-      } catch (error) {
-        toast({
-          title: "Processing Failed",
-          description: "Failed to process the image. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsProcessing(false)
-      }
-    },
-    [processImageForWallpaper, toast, onUpdate],
-  )
-
-  return (
-    <Card className="gradient-card border-white/10">
-      <CardContent className="p-4">
-        <div className="aspect-video bg-muted rounded-lg mb-3 overflow-hidden relative group cursor-pointer">
-          <img
-            src={image.url || "/placeholder.svg"}
-            alt={image.name}
-            className="w-full h-full object-cover transition-all duration-300"
-            style={{
-              filter: `brightness(${image.adjustments.brightness}%) contrast(${image.adjustments.contrast}%) saturate(${image.adjustments.saturation}%) hue-rotate(${image.adjustments.hue}deg) blur(${image.adjustments.blur}px) opacity(${image.adjustments.opacity}%)`,
-            }}
-            onClick={() => onImageView(image.id)}
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-            <Eye className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </div>
-          {image.processedUrl && (
-            <div className="absolute top-2 right-2">
-              <CheckCircle className="h-5 w-5 text-green-500 bg-background/80 rounded-full" />
-            </div>
-          )}
-          {image.isGenerated && (
-            <div className="absolute top-2 left-2">
-              <div className="flex items-center space-x-1 bg-primary/90 text-primary-foreground px-2 py-1 rounded-full text-xs">
-                <Wand2 className="h-3 w-3" />
-                <span>AI</span>
-              </div>
-            </div>
-          )}
-          {image.isFromPicsum && (
-            <div className="absolute top-2 left-2">
-              <div className="flex items-center space-x-1 bg-green-500/90 text-white px-2 py-1 rounded-full text-xs">
-                <ImageIcon className="h-3 w-3" />
-                <span>Picsum</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <h4 className="font-medium text-white mb-3 truncate">{image.name}</h4>
-
-        <div className="flex space-x-2 mt-4">
-          <Button
-            size="sm"
-            className="flex-1 gradient-bg border-0 hover:opacity-90"
-            onClick={() => setAsWallpaper(image)}
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <>
-                <Settings className="h-3 w-3 mr-1 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Set as Wallpaper"
-            )}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onRemove(image.id)}
-            className="border-white/20 hover:bg-white/10"
-            title="Remove wallpaper"
-          >
-            <Download className="h-3 w-3" />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onImageView(image.id)}
-            className="border-white/20 hover:bg-white/10"
-          >
-            <Eye className="h-3 w-3" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    </div>
   )
 }
